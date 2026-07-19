@@ -169,7 +169,7 @@ async function doGetSession() {
     sessionKey = r.session.key;
     sessionName = r.session.name;
     await chrome.storage.local.set({ sessionKey, sessionName: r.session.name });
-    await chrome.storage.local.remove(['pendingAuthToken', 'authInProgress']);
+    await chrome.storage.local.remove(['pendingAuthToken', 'lastAuthToken', 'authInProgress']);
     ensureContentScript();
   }
   return r;

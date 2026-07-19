@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "YTM Scrobbler",
+  "version": "1.0.0",
+  "description": "Scrobble YouTube Music to Last.fm",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://music.youtube.com/*",
+    "https://ws.audioscrobbler.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [{
+    "matches": ["https://music.youtube.com/*"],
+    "js": ["src/ytmusic.js"],
+    "run_at": "document_idle"
+  }],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": "icons/icon.png"
+  },
+  "icons": { "128": "icons/icon.png" }
+}

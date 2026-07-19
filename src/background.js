@@ -155,7 +155,7 @@ async function doGetToken() {
   const r = await apiCall('auth.getToken', {});
   if (r.token) {
     authToken = r.token;
-    await chrome.storage.local.set({ lastAuthToken: r.token });
+    await chrome.storage.local.set({ lastAuthToken: r.token, authInProgress: true });
   }
   return r;
 }
@@ -168,7 +168,7 @@ async function doGetSession() {
     sessionKey = r.session.key;
     sessionName = r.session.name;
     await chrome.storage.local.set({ sessionKey, sessionName: r.session.name });
-    await chrome.storage.local.remove('pendingAuthToken');
+    await chrome.storage.local.remove(['pendingAuthToken', 'authInProgress']);
   }
   return r;
 }
@@ -184,8 +184,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'getSession') {
-    doGetSession().then(r => sendResponse(r)).catch(e => sendResponse({ error: e.message }));
-    return true;
+    doGetSession().catch(e => console.error('getSession failed', e));
+    sendResponse({ checking: true });
+    return false;
   }
   if (msg.action === 'getStatus') {
     sendResponse({ connected: !!sessionKey, track: currentTrack, sessionName });
@@ -194,7 +195,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'clearAuth') {
     sessionKey = authToken = '';
     currentTrack = null;
-    chrome.storage.local.remove(['sessionKey', 'pendingAuthToken', 'lastAuthToken']);
+    chrome.storage.local.remove(['sessionKey', 'pendingAuthToken', 'lastAuthToken', 'authInProgress']);
     sendResponse({ ok: true });
     return false;
   }

@@ -1,6 +1,6 @@
 # ytm-scrobbler
 
-Scrobble YouTube Music to Last.fm — Chrome MV3 extension.
+Scrobble YouTube Music to Last.fm — lightweight, minimal Chrome MV3 extension.
 
 ## Setup
 

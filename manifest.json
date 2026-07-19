@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YTM Scrobbler",
   "version": "1.0.0",
-  "description": "Scrobble YouTube Music to Last.fm",
+  "description": "Lightweight, minimal Last.fm scrobbler for YouTube Music",
   "permissions": ["storage"],
   "host_permissions": [
     "https://music.youtube.com/*",

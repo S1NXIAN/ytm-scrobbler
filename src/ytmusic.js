@@ -23,3 +23,7 @@ setInterval(() => { try {
     }
   }).catch(() => {});
 } catch(e) {} }, 2000);
+
+window.addEventListener('pagehide', () => {
+  chrome.runtime.sendMessage({ action: 'trackStopped' }).catch(() => {});
+});

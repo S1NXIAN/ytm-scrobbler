@@ -12,6 +12,7 @@ chrome.storage.onChanged.addListener((c, a) => { if (a === 'local' && c.scrobble
 let sessionKey = '';
 let sessionName = '';
 let currentTrack = null, authToken = '';
+let sourceTabId = null;
 
 // ── startup: load persisted state ──
 chrome.storage.local.get(['sessionKey', 'cachedTrack']).then(s => {
@@ -181,11 +182,29 @@ async function ensureContentScript() {
   }
 }
 
+// ── tab lifecycle: clear stale track when source YTM tab closes ──
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (sourceTabId && tabId === sourceTabId) {
+    sourceTabId = null;
+    currentTrack = null;
+    chrome.storage.local.remove('cachedTrack');
+    apiCall('track.updateNowPlaying', { artist: ' ', track: ' ', duration: '0' }).catch(() => {});
+  }
+});
+
 // ── message router ──
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'track') {
+    sourceTabId = sender.tab?.id || null;
     onTrack(msg.data, Date.now()).then(() => sendResponse({ ok: true })).catch(e => sendResponse({ ok: false, error: e.message }));
     return true;
+  }
+  if (msg.action === 'trackStopped') {
+    currentTrack = null;
+    chrome.storage.local.remove('cachedTrack');
+    apiCall('track.updateNowPlaying', { artist: ' ', track: ' ', duration: '0' }).catch(() => {});
+    sendResponse({ ok: true });
+    return false;
   }
   if (msg.action === 'getToken') {
     doGetToken().then(r => sendResponse(r)).catch(e => sendResponse({ error: e.message }));
@@ -202,6 +221,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.action === 'clearAuth') {
     sessionKey = authToken = '';
+    sourceTabId = null;
     currentTrack = null;
     chrome.storage.local.remove(['sessionKey', 'lastAuthToken', 'authInProgress']);
     sendResponse({ ok: true });

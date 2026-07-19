@@ -12,7 +12,6 @@ chrome.storage.onChanged.addListener((c, a) => { if (a === 'local' && c.scrobble
 let sessionKey = '';
 let sessionName = '';
 let currentTrack = null, authToken = '';
-let trackIdCounter = 0;
 
 // ── startup: load persisted state ──
 chrome.storage.local.get(['sessionKey', 'cachedTrack']).then(s => {
@@ -127,9 +126,8 @@ async function onTrack(info, startedAt) {
     }
   }
 
-  const id = ++trackIdCounter;
   const dur = Math.max(30, info.duration || 30); // floor: 30s
-  currentTrack = { ...info, duration: dur, scrobbled: false, startedAt, id };
+  currentTrack = { ...info, duration: dur, scrobbled: false, startedAt };
   chrome.storage.local.set({ cachedTrack: currentTrack });
 
   // Now playing (fire-and-forget, don't block on failure)
@@ -169,7 +167,7 @@ async function doGetSession() {
     sessionKey = r.session.key;
     sessionName = r.session.name;
     await chrome.storage.local.set({ sessionKey, sessionName: r.session.name });
-    await chrome.storage.local.remove(['pendingAuthToken', 'lastAuthToken', 'authInProgress']);
+    await chrome.storage.local.remove(['lastAuthToken', 'authInProgress']);
     ensureContentScript();
   }
   return r;
@@ -205,7 +203,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'clearAuth') {
     sessionKey = authToken = '';
     currentTrack = null;
-    chrome.storage.local.remove(['sessionKey', 'pendingAuthToken', 'lastAuthToken', 'authInProgress']);
+    chrome.storage.local.remove(['sessionKey', 'lastAuthToken', 'authInProgress']);
     sendResponse({ ok: true });
     return false;
   }

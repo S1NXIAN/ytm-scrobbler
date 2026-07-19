@@ -17,6 +17,7 @@ let trackIdCounter = 0;
 // ── startup: load persisted state ──
 chrome.storage.local.get(['sessionKey', 'cachedTrack']).then(s => {
   sessionKey = s.sessionKey || '';
+  if (s.sessionKey) ensureContentScript();
   if (s.cachedTrack) {
     currentTrack = s.cachedTrack;
     if (currentTrack.artist) currentTrack.artist = currentTrack.artist.split('•')[0].trim();
@@ -169,8 +170,17 @@ async function doGetSession() {
     sessionName = r.session.name;
     await chrome.storage.local.set({ sessionKey, sessionName: r.session.name });
     await chrome.storage.local.remove(['pendingAuthToken', 'authInProgress']);
+    ensureContentScript();
   }
   return r;
+}
+
+// ── inject content script into open YTM tabs ──
+async function ensureContentScript() {
+  const tabs = await chrome.tabs.query({ url: 'https://music.youtube.com/*' }).catch(() => []);
+  for (const t of tabs) {
+    chrome.scripting.executeScript({ target: { tabId: t.id }, files: ['src/ytmusic.js'] }).catch(() => {});
+  }
 }
 
 // ── message router ──

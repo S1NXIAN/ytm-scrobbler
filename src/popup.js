@@ -23,9 +23,11 @@ let btn = $('#btn-auth'), statusInterval = null, sessionPoll = null;
 
 function setWaiting(w) {
   $('#spinner').classList.toggle('hidden', !w);
+  $('#btn-cancel-auth').classList.toggle('hidden', !w);
   btn.classList.toggle('hidden', w);
   $('#auth .status').classList.toggle('hidden', w);
   $('#auth-msg').classList.add('hidden');
+  if (!w) { btn.disabled = false; btn.textContent = 'Authorize with Last.fm'; }
 }
 
 function startAuth() {
@@ -42,22 +44,39 @@ function startAuth() {
 }
 btn.onclick = startAuth;
 
+$('#btn-cancel-auth').addEventListener('click', () => {
+  clearInterval(sessionPoll); sessionPoll = null;
+  setWaiting(false);
+  chrome.storage.local.remove('authInProgress');
+  showAuthMsg('Authorization cancelled');
+});
+
 function startSessionPoll() {
   if (sessionPoll) return;
+  let tries = 0;
   sessionPoll = setInterval(async () => {
-    chrome.runtime.sendMessage({ action: 'getSession' }).catch(() => {});
     const { sessionKey } = await chrome.storage.local.get('sessionKey');
     if (sessionKey) {
-      clearInterval(sessionPoll);
-      sessionPoll = null;
+      clearInterval(sessionPoll); sessionPoll = null;
       showPlayer();
+      return;
     }
+    if (++tries > 15) { // ~30s safety fallback
+      clearInterval(sessionPoll); sessionPoll = null;
+      setWaiting(false);
+      showAuthMsg('Timed out waiting for authorization');
+      return;
+    }
+    chrome.runtime.sendMessage({ action: 'getSession' }).catch(() => {});
   }, 2000);
 }
 
 $('#btn-disconnect').addEventListener('click', async () => {
   await chrome.runtime.sendMessage({ action: 'clearAuth' });
   clearInterval(statusInterval);
+  $('#player').classList.add('hidden');
+  $('#auth').style.display = '';
+  setWaiting(false);
 });
 
 function showPlayer() {

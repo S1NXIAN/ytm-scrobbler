@@ -194,7 +194,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     sourceTabId = null;
     currentTrack = null;
     chrome.storage.local.remove(['cachedTrack', 'sourceTabId']);
-    apiCall('track.updateNowPlaying', { artist: ' ', track: ' ', duration: '0' }).catch(() => {});
   }
 });
 
@@ -209,7 +208,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'trackStopped') {
     currentTrack = null;
     chrome.storage.local.remove('cachedTrack');
-    apiCall('track.updateNowPlaying', { artist: ' ', track: ' ', duration: '0' }).catch(() => {});
     sendResponse({ ok: true });
     return false;
   }

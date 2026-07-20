@@ -15,10 +15,16 @@ let currentTrack = null, authToken = '';
 let sourceTabId = null;
 
 // ── startup: load persisted state ──
-chrome.storage.local.get(['sessionKey', 'cachedTrack']).then(s => {
+chrome.storage.local.get(['sessionKey', 'sessionName', 'cachedTrack', 'sourceTabId']).then(async s => {
+  sourceTabId = s.sourceTabId || null;
   sessionKey = s.sessionKey || '';
+  sessionName = s.sessionName || '';
   if (s.sessionKey) ensureContentScript();
-  if (s.cachedTrack) {
+  if (s.cachedTrack && sourceTabId) {
+    try { await chrome.tabs.get(sourceTabId); } catch {
+      chrome.storage.local.remove(['cachedTrack', 'sourceTabId']);
+      return;
+    }
     currentTrack = s.cachedTrack;
     if (currentTrack.artist) currentTrack.artist = currentTrack.artist.split('•')[0].trim();
   }
@@ -187,7 +193,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (sourceTabId && tabId === sourceTabId) {
     sourceTabId = null;
     currentTrack = null;
-    chrome.storage.local.remove('cachedTrack');
+    chrome.storage.local.remove(['cachedTrack', 'sourceTabId']);
     apiCall('track.updateNowPlaying', { artist: ' ', track: ' ', duration: '0' }).catch(() => {});
   }
 });
@@ -196,6 +202,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'track') {
     sourceTabId = sender.tab?.id || null;
+    chrome.storage.local.set({ sourceTabId });
     onTrack(msg.data, Date.now()).then(() => sendResponse({ ok: true })).catch(e => sendResponse({ ok: false, error: e.message }));
     return true;
   }
@@ -223,7 +230,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sessionKey = authToken = '';
     sourceTabId = null;
     currentTrack = null;
-    chrome.storage.local.remove(['sessionKey', 'lastAuthToken', 'authInProgress']);
+    chrome.storage.local.remove(['sessionKey', 'lastAuthToken', 'authInProgress', 'sourceTabId']);
     sendResponse({ ok: true });
     return false;
   }
